@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Карьера: путь к диплому</title>
+  <link rel="stylesheet" href="/style/main.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-container">
+      <div class="logo-section">
+        <img src="/img/npk_logo.png" alt="logo" class="header-logo" />
+        <span class="header-title">Карьера: путь к диплому</span>
+      </div>
+
+      <nav class="header-nav">
+        <a href="main.html" class="nav-link">Главная</a>
+        <a href="lobby.html" class="nav-link">Игра</a>
+        <a href="achievements.html" class="nav-link">Достижения</a>
+      </nav>
+
+      <div class="header-right">
+        <a href="account.html" class="cabinet-btn">Личный кабинет</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="cabinet-wrapper">
+    <div class="page-headings">
+      <h2 class="page-pretitle">Твой путь в профессию</h2>
+      <h1 class="page-title">Информация о колледже</h1>
+    </div>
+
+    <section class="college-section">
+      <div class="college-card college-card-main">
+        <img src="/img/КОЛЛЕДЖ.png" alt="Нефтеюганский политехнический колледж" class="college-image" />
+        <div class="college-content">
+          <h2 class="college-title">Нефтеюганский политехнический колледж</h2>
+          <h3 class="college-subtitle">Образование будущего</h3>
+          <p class="college-text">
+            Колледж — это место, где образование встречает технологии и возможности.
+            Здесь можно выбрать из десятков востребованных специальностей — от IT и дизайна
+            до инженерии и сервиса. Более 95% наших выпускников успешно трудоустраиваются,
+            ведь обучение построено на практике, с использованием современных мастерских
+            и цифрового оборудования.
+          </p>
+        </div>
+      </div>
+
+      <aside class="college-card college-card-side">
+        <h3 class="directions-title">Популярные направления</h3>
+
+        <ul class="directions-list">
+          <li class="direction-item">
+            <div class="direction-icon-wrap">
+              <img src="/img/прогерИкон.png" alt="Информационные системы и программирование" class="direction-icon" />
+            </div>
+            <span class="direction-text">Информационные системы и программирование</span>
+          </li>
+
+          <li class="direction-item">
+            <div class="direction-icon-wrap">
+              <img src="/img/химикИкон.png" alt="Технология аналитического контроля химических соединений" class="direction-icon" />
+            </div>
+            <span class="direction-text">Технология аналитического контроля химических соединений</span>
+          </li>
+
+          <li class="direction-item">
+            <div class="direction-icon-wrap">
+              <img src="/img/нефтьИкон.png" alt="Разработка и эксплуатация нефтяных и газовых месторождений" class="direction-icon" />
+            </div>
+            <span class="direction-text">Разработка и эксплуатация нефтяных и газовых месторождений</span>
+          </li>
+
+          <li class="direction-item">
+            <div class="direction-icon-wrap">
+              <img src="/img/бурениеИкон.png" alt="Бурение нефтяных и газовых скважин" class="direction-icon" />
+            </div>
+            <span class="direction-text">Бурение нефтяных и газовых скважин</span>
+          </li>
+        </ul>
+
+        <a href="https://neftpk.ru" target="_blank" rel="noopener noreferrer" class="apply-button">
+          Подать заявку на поступление
+        </a>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-section">
+        <h3 class="footer-title">Карьера: путь к диплому</h3>
+        <p class="footer-description">
+          Образовательная платформа для студентов и выпускников.
+          Помогаем построить успешную карьеру с самого начала.
+        </p>
+      </div>
+
+      <div class="footer-section">
+        <h4 class="footer-subtitle">Контакты</h4>
+        <div class="contact-info">
+          <div class="contact-item">
+            <span class="contact-icon">📧</span>
+            <span>iatsan006@gmail.com</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📞</span>
+            <span>+7 (908) 895-44-97</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-bottom-container">
+        <p class="copyright">&copy; 2026 Карьера: путь к диплому. Все права защищены.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Добавляем активный класс для текущей страницы
+    document.addEventListener('DOMContentLoaded', function() {
+      const currentPage = window.location.pathname.split('/').pop();
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        const linkPage = link.getAttribute('href');
+        if (linkPage === currentPage) {
+          link.style.background = 'rgba(255, 255, 255, 0.25)';
+          link.style.pointerEvents = 'none';
+        }
+      });
+      
+      // Проверяем авторизацию для страницы личного кабинета
+      const cabinetBtn = document.querySelector('.cabinet-btn');
+      if (cabinetBtn && currentPage === 'account.html') {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (!isLoggedIn || isLoggedIn !== 'true') {
+          // Если не авторизован, перенаправляем на страницу входа
+          window.location.href = 'logreg.html';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

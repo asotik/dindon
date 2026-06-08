@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои достижения — Карьера: путь к диплому</title>
+  <link rel="stylesheet" href="style/achievements.css">
+</head>
+<body>
+
+<!-- УНИФИЦИРОВАННЫЙ ХЕДЕР -->
+<header class="header">
+  <div class="header-container">
+    <div class="logo-section">
+      <img src="/img/npk_logo.png" alt="logo" class="header-logo" />
+      <span class="header-title">Карьера: путь к диплому</span>
+    </div>
+
+    <nav class="header-nav">
+      <a href="main.html" class="nav-link">Главная</a>
+      <a href="lobby.html" class="nav-link">Игра</a>
+      <a href="achievements.html" class="nav-link">Достижения</a>
+    </nav>
+
+    <div class="header-right">
+      <a href="account.html" class="cabinet-btn">Личный кабинет</a>
+    </div>
+  </div>
+</header>
+
+<main class="achievements-wrapper">
+  <!-- Основная карточка достижений -->
+  <div class="achievements-card">
+    <!-- Верхняя часть с аватаркой и прогрессом -->
+    <div class="achievements-header">
+      <div class="avatar">Q</div>
+      <div class="achievements-info">
+        <h1 class="achievements-title">Мои достижения</h1>
+        <div class="progress-container">
+          <div class="progress-bar-bg">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+          <span class="progress-text" id="progressText">Открыто: 0 из 24</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="achievements-content">
+      <!-- Левая колонка - категории и достижения -->
+      <div class="achievements-left">
+        <!-- Категории -->
+        <div class="categories">
+          <button class="category-btn active" data-category="all">Все</button>
+          <button class="category-btn" data-category="study">Учеба</button>
+          <button class="category-btn" data-category="career">Карьерный путь</button>
+          <button class="category-btn" data-category="diplomas">Дипломы</button>
+          <button class="category-btn" data-category="college">Колледж</button>
+        </div>
+
+        <!-- Список достижений -->
+        <div class="achievements-list" id="achievementsList">
+          <!-- Динамически загружается через JS -->
+        </div>
+      </div>
+
+      <!-- Правая колонка - цели -->
+      <div class="achievements-right">
+        <!-- Ближайшие цели -->
+        <div class="goals-block">
+          <h3 class="goals-title">Ближайшие цели</h3>
+          <div class="goals-list">
+            <div class="goal-item">
+              <span class="goal-icon">✨</span>
+              <span class="goal-text">Открой 3 достижения в категории навыки</span>
+            </div>
+            <div class="goal-item">
+              <span class="goal-icon">🎯</span>
+              <span class="goal-text">Пройди 5 заданий подряд</span>
+            </div>
+            <div class="goal-item locked">
+              <span class="goal-icon">🔒</span>
+              <span class="goal-text">Еще не открыто</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ежедневная цель -->
+        <div class="daily-goal">
+          <h3 class="daily-goal-title">Ежедневная цель</h3>
+          <div class="daily-goal-content">
+            <div class="daily-goal-text">✨ Получи 3 новых достижения</div>
+            <div class="daily-goal-progress">
+              <div class="daily-progress-bar">
+                <div class="daily-progress-fill" style="width: 00%"></div>
+              </div>
+              <span class="daily-progress-text">0/3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+    <div class="footer-container">
+      <div class="footer-section">
+        <h3 class="footer-title">Карьера: путь к диплому</h3>
+        <p class="footer-description">
+          Образовательная платформа для студентов и выпускников.
+          Помогаем построить успешную карьеру с самого начала.
+        </p>
+      </div>
+
+      <div class="footer-section">
+        <h4 class="footer-subtitle">Контакты</h4>
+        <div class="contact-info">
+          <div class="contact-item">
+            <span class="contact-icon">📧</span>
+            <span>iatsan006@gmail.com</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📞</span>
+            <span>+7 (908) 895-44-97</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-bottom-container">
+        <p class="copyright">&copy; 2026 Карьера: путь к диплому. Все права защищены.</p>
+      </div>
+    </div>
+  </footer>
+
+<script src="achievements.js"></script>
+</body>
+</html>

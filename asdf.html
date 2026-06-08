@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игровое поле</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #d8edff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #bfe3ff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            position: relative;
+        }
+
+        .game-board {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            background: #bfe3ff;
+            border-radius: 15px;
+            overflow: hidden;
+            background-image: url('/img/fon.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .paths-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        .path {
+            fill: none;
+            stroke: rgb(255,255,255);
+            stroke-width: 21;
+            stroke-linecap: round;
+            opacity: 0.9;
+        }
+
+        .path-center {
+            fill: none;
+            stroke: #9fd4ff;
+            stroke-width: 25;
+            stroke-linecap: round;
+            opacity: 0.6;
+        }
+
+        .game-node {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 16px;
+            border: 4px solid white;
+        }
+
+        .game-node:hover { transform: scale(1.2); box-shadow: 0 6px 20px rgba(0,0,0,0.3); z-index: 20; }
+        .game-node.blue { background: linear-gradient(135deg, #667eea 0%, #80acff 100%); }
+        .game-node.yellow { background: linear-gradient(135deg, #d35800 0%, #ffd094 100%); }
+        .game-node.gold {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #b8860b;
+            width: 60px; height: 60px; font-size: 24px;
+        }
+
+        /* ФИКСы: заблокированная клетка (не твой ход) */
+        .game-node.blocked {
+            cursor: not-allowed;
+            opacity: 0.6;
+            filter: grayscale(60%);
+        }
+        .game-node.blocked:hover { transform: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        /* ФИКСы: заблокированная чужая ветка */
+        .game-node.other-branch {
+            cursor: not-allowed;
+            opacity: 0.4;
+            filter: grayscale(80%);
+        }
+        .game-node.other-branch:hover { transform: none; }
+
+        .trophy {
+            position: absolute;
+            font-size: 40px;
+            z-index: 5;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: linear-gradient(180deg, #e8f4ff 0%, #bfe3ff 100%);
+            padding: 0;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalAppear 0.3s ease;
+            overflow: hidden;
+        }
+
+        @keyframes modalAppear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        .modal-header-title { color: #1e3c72; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .modal-header-branch { color: #2a5298; font-size: 16px; }
+
+        .modal-body { padding: 30px 20px; }
+
+        .question-label {
+            background: #1e3c72;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 10px;
+            display: inline-block;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .question-text {
+            color: #1e3c72;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .answer-options { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+
+        .answer-option {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #1e3c72;
+        }
+        .answer-option:hover { background: #e8f4ff; transform: translateX(5px); box-shadow: 0 3px 10px rgba(102,126,234,0.3); }
+        .answer-option.selected { background: #667eea; color: white; border-color: #667eea; }
+
+        .radio-circle {
+            width: 24px; height: 24px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .answer-option.selected .radio-circle { border-color: white; background: white; }
+        .answer-option.selected .radio-circle::after { content: '✓'; color: #667eea; font-weight: bold; font-size: 16px; }
+
+        .answer-text { font-size: 18px; font-weight: 600; color: #1e3c72; }
+
+        .modal-btn-answer {
+            background: linear-gradient(135deg, #667eea 0%, #80acff 100%);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        .modal-btn-answer:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.5); }
+
+        .result-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .result-icon {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px;
+            font-size: 60px;
+            animation: resultAppear 0.5s ease;
+        }
+
+        @keyframes resultAppear {
+            from { opacity: 0; transform: scale(0); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .result-icon.correct { background: #2ecc71; color: white; }
+        .result-icon.incorrect { background: #3498db; color: white; }
+        .result-title { font-size: 28px; font-weight: bold; margin-bottom: 15px; }
+        .result-title.correct { color: #27ae60; }
+        .result-title.incorrect { color: #1e3c72; }
+        .result-subtitle { font-size: 16px; color: #555; }
+
+        .node-number {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .game-node.passed {
+            opacity: 0.96 !important;
+            filter: none !important;
+            cursor: default !important;
+            pointer-events: none !important;
+            border-color: rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18) !important;
+        }
+        .game-node.passed.blocked,
+        .game-node.passed.other-branch,
+        .game-node.passed.next-locked {
+            opacity: 0.96 !important;
+            filter: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .game-board { height: 500px; }
+            .game-node { width: 40px; height: 40px; font-size: 10px; }
+            .path { stroke-width: 25; }
+            .question-text { font-size: 18px; }
+            .answer-text { font-size: 16px; }
+        }
+
+        .player-pin {
+            position: absolute;
+            width: 60px; 
+            height: 60px;
+            z-index: 100;
+            transition: all 0.5s ease;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+        }
+        #pin-programmer { filter: drop-shadow(0 0 5px #667eea); }
+        #pin-cook { filter: drop-shadow(0 0 5px #e67e22); }
+        #pin-chemist { filter: drop-shadow(0 0 5px #2ecc71); }
+
+        /* ФИКСы: индикатор хода */
+        #turnIndicator {
+            position: fixed;
+            top: 20px; left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            border: 3px solid #667eea;
+        }
+
+        /* ФИКСы: подсветка "сейчас твой ход" */
+        #turnIndicator.my-turn {
+            border-color: #2ecc71;
+            background: #f0fff4;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 10px rgba(46,204,113,0.3); }
+            50% { box-shadow: 0 4px 20px rgba(46,204,113,0.7); }
+        }
+
+        /* Прогресс-бары */
+        .progress-bars-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-bar-label {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 14px;
+            min-width: 110px;
+            white-space: nowrap;
+        }
+
+        .progress-bar-track {
+            flex: 1;
+            height: 28px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 20px;
+            border: 2px solid white;
+            overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            min-width: 36px;
+        }
+
+        .progress-bar-fill.programmer {
+            background: linear-gradient(90deg, #667eea, #9baeff);
+            box-shadow: 0 0 8px rgba(102,126,234,0.6);
+        }
+        .progress-bar-fill.cook {
+            background: linear-gradient(90deg, #e67e22, #ffb347);
+            box-shadow: 0 0 8px rgba(230,126,34,0.6);
+        }
+        .progress-bar-fill.chemist {
+            background: linear-gradient(90deg, #2ecc71, #7eedab);
+            box-shadow: 0 0 8px rgba(46,204,113,0.6);
+        }
+
+        .progress-bar-row.active-turn .progress-bar-label {
+            color: #667eea;
+        }
+        .progress-bar-row.active-turn .progress-bar-track {
+            border-color: #667eea;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15), 0 0 0 2px rgba(102,126,234,0.4);
+        }
+
+        /* Заблокированная клетка (не следующая) */
+        .game-node.next-locked {
+            cursor: not-allowed;
+            opacity: 0.35;
+            filter: grayscale(70%);
+            pointer-events: none;
+        }
+        .game-node.next-locked:hover { transform: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Модалка выбора очередности -->
+    <div class="modal-overlay" id="turnOrderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-header-title">Начало игры: Выбор очередности</div>
+                <div class="modal-header-branch">Распределите, кто будет Игроком 1, 2 и 3</div>
+            </div>
+            <div class="modal-body">
+                <div class="answer-options" id="playerSelectionContainer">
+                    <button class="modal-btn-answer" onclick="setPlayerOrder(1)">Я буду ходить Первым</button>
+                    <button class="modal-btn-answer" onclick="setPlayerOrder(2)">Я буду ходить Вторым</button>
+                    <button class="modal-btn-answer" onclick="setPlayerOrder(3)">Я буду ходить Третьим</button>
+                </div>
+                <p id="orderStatus" style="margin-top:15px;color:#1e3c72;font-weight:bold;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Индикатор хода -->
+    <div id="turnIndicator">
+        <span style="font-weight:bold;color:#1e3c72;">Сейчас ходит: </span>
+        <span id="currentPlayerDisplay" style="color:#667eea;font-weight:bold;">Игрок 1</span>
+        <div id="myTurnLabel" style="display:none;color:#2ecc71;font-weight:bold;font-size:12px;margin-top:4px;">← Твой ход!</div>
+    </div>
+
+    <div class="game-container" id="gameMap">
+        <!-- Прогресс-бар (только своя роль) -->
+        <div class="progress-bars-container" id="progressBarsContainer">
+            <div class="progress-bar-row" id="progressRow-programmer" style="display:none;">
+                <div class="progress-bar-label">💻 Программист</div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill programmer" id="progressFill-programmer" style="width:0%">0%</div>
+                </div>
+            </div>
+            <div class="progress-bar-row" id="progressRow-cook" style="display:none;">
+                <div class="progress-bar-label">👨‍🍳 Повар</div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill cook" id="progressFill-cook" style="width:0%">0%</div>
+                </div>
+            </div>
+            <div class="progress-bar-row" id="progressRow-chemist" style="display:none;">
+                <div class="progress-bar-label">🧪 Химик</div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill chemist" id="progressFill-chemist" style="width:0%">0%</div>
+                </div>
+            </div>
+        </div>
+        <div class="game-board">
+            <svg class="paths-svg" viewBox="0 0 1700 1000" preserveAspectRatio="xMidYMid meet">
+                <path class="path" d="M 150,140 Q 410,190 180,310 T 260,450 T 240,650 T 620,930"/>
+                <path class="path" d="M 1550,140 Q 1290,190 1520,310 T 1440,450 T 1460,650 T 1080,930"/>
+                <path class="path" d="M 470,104 Q 620,286 567,357 T 638,510 T 850,571"/>
+                <path class="path" d="M 1230,104 Q 1080,286 1133,357 T 1062,510 T 850,571"/>
+                <path class="path" d="M 850,570 Q 850,570 850,770 T 850,860"/>
+            </svg>
+            <div id="nodesContainer"></div>
+            <img src="/img/программист.png" id="pin-programmer" class="player-pin" alt="Программист">
+            <img src="/img/повар.png" id="pin-cook" class="player-pin" alt="Повар">
+            <img src="/img/химик.png" id="pin-chemist" class="player-pin" alt="Химик">
+        </div>
+    </div>
+
+    <!-- Игровая модалка -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-title" id="modalCellTitle">Клетка: №1</div>
+                <div class="modal-header-branch" id="modalBranch">Ветка: программист</div>
+            </div>
+            <div class="modal-body">
+                <div id="theorySection" style="display:none;">
+                    <div class="question-label">Теория</div>
+                    <div class="theory-card" style="background:white;padding:25px;border-radius:15px;margin-bottom:25px;color:#1e3c72;font-size:18px;line-height:1.5;border:2px solid #667eea;">
+                        <p id="theoryText"></p>
+                    </div>
+                    <button class="modal-btn-answer" onclick="showQuestionAfterTheory()">Далее</button>
+                </div>
+                <div id="questionSection">
+                    <div class="question-label">Вопрос:</div>
+                    <div class="question-text" id="questionText"></div>
+                    <div class="answer-options" id="answerOptions"></div>
+                    <button class="modal-btn-answer" id="answerBtn" onclick="checkAnswer()">Ответить</button>
+                </div>
+                <div class="result-container" id="resultSection">
+                    <div class="result-icon" id="resultIcon">✓</div>
+                    <div class="result-title" id="resultTitle">Верно!</div>
+                    <div class="result-subtitle" id="resultSubtitle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="victoryModal">
+        <div class="modal" style="border: 5px solid #ffcc00;">
+            <div class="modal-body">
+                <div class="result-icon correct">🏆</div>
+                <h2 class="result-title correct">Поздравляем с победой!</h2>
+                <p class="result-subtitle" style="font-size: 20px; margin-bottom: 25px;">
+                    Вы успешно прошли все испытания своей ветки!
+                </p>
+                <button class="modal-btn-answer" onclick="showDiploma()">Получить диплом</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="diplomaModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <div class="modal-header-title">Ваш профессиональный диплом</div>
+            </div>
+            <div class="modal-body">
+                <img src="/img/diplom.png" alt="Диплом" style="width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px;">
+                <button class="modal-btn-answer" onclick="goToMainMenu()">Вернуться на главную</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAeRQESywB2ojoRKhbj3YxvJ0VSeAtEm7Q",
+        authDomain: "game-aa689.firebaseapp.com",
+        projectId: "game-aa689",
+        storageBucket: "game-aa689.firebasestorage.app",
+        messagingSenderId: "881400411512",
+        appId: "1:881400411512:web:74988510f2713d6178848d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get('id');
+    const myRole = params.get('role') || sessionStorage.getItem('myRole') || 'spectator';
+    const roomRef = doc(db, "rooms", roomId);
+
+    // Сохраняем роль на случай обновления страницы
+    if (myRole !== 'spectator') sessionStorage.setItem('myRole', myRole);
+
+    // =====================
+    // ДАННЫЕ О КЛЕТКАХ
+    // =====================
+    const nodesData = [
+        // СТАРТОВЫЕ КЛЕТКИ
+        {id: 0, role: 'programmer', x: 32, y: 95, type: 'blue', branch: 'programmer'},
+        {id: 0, role: 'cook', x: 50, y: 95, type: 'blue', branch: 'cook'},
+        {id: 0, role: 'chemist', x: 68, y: 95, type: 'blue', branch: 'chemist'},
+
+        // Левая дорожка - программист
+        {id: 11, x: 7, y: 15, type: 'gold', branch: 'программист', question: 'Вы пишете программу для робота-пылесоса, который должен убрать все клетки комнаты 5×5, начиная с угла. Рекурсивный алгоритм «заполнения» (как заливка в Paint) вызывает себя для соседних клеток. Что произойдёт, если забыть отметить клетку как «уже посещённую» перед вызовом рекурсии для четырёх соседей?', answers: ['Робот уберёт всю комнату идеально', 'Программа упадёт из-за переполнения стека (бесконечная рекурсия)', 'Робот будет двигаться только вперёд', 'Комната остается грязной'], correct: 1},
+        {id: 10, x: 15, y: 19, type: 'yellow', branch: 'программист', theory: 'Динамическое программирование (ДП) — метод решения задач путём разбиения на подзадачи и сохранения их результатов. Классические примеры: числа Фибоначчи, задача о рюкзаке, поиск наибольшей общей подпоследовательности. ДП бывает двух видов: нисходящее (с мемоизацией) и восходящее (табуляция). Временная сложность ДП часто полиномиальна, в отличие от экспоненциального полного перебора.', question: 'Сколько способов подняться на ступеньку n, если можно шагать на 1 или 2 ступени?', answers: ['n', 'n!', '2^n', 'Число Фибоначчи F(n+1)'], correct: 3},
+        {id: 9, x: 12, y: 31, type: 'blue', branch: 'программист', question: 'Что не является языком программирования?', answers: ['Python', 'HTML', 'JavaScript', 'C#'], correct: 1},
+        {id: 8, x: 5, y: 41, type: 'blue', branch: 'программист', question: 'Что такое «облачное хранилище»?', answers: ['Флешка', 'Место на удалённых серверах в интернете', 'Внешний жёсткий диск', 'Оперативная память'], correct: 1},
+        {id: 7, x: 14, y: 45, type: 'yellow', branch: 'программист', theory: 'Сложность алгоритмов сортировки: пузырьком (O(n²)) прост, но медлителен. Сортировка слиянием и быстрая сортировка дают O(n log n) в среднем. Однако быстрая сортировка может деградировать до O(n²) при неудачном выборе опорного элемента.', question: 'Какая сортировка в худшем случае работает за O(n log n) гарантированно?', answers: ['Пузырьковая', 'Быстрая', 'Сортировка слиянием', 'Сортировка выбором'], correct: 2},
+        {id: 6, x: 23, y: 54, type: 'blue', branch: 'программист', question: 'Как называется главная плата в компьютере, на которую крепятся все детали?', answers: ['Видеокарта', 'Материнская плата', 'Блок питания', 'Кулер'], correct: 1},
+        {id: 5, x: 15, y: 64, type: 'yellow', branch: 'программист', theory: 'Временная сложность алгоритмов оценивается с помощью «O-большое» (Big O). O(1) — константное время, O(n) — линейное, O(n²) — квадратичное. Понимание сложности позволяет предсказать, как программа замедлится при росте данных.', question: 'Какова временная сложность поиска элемента в несортированном массиве (линейный поиск)?', answers: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'], correct: 2},
+        {id: 4, x: 8, y: 74, type: 'blue', branch: 'программист', question: 'Как называется ошибка в коде программы?', answers: ['Баг', 'Вирус', 'Пароль', 'Хак'], correct: 0},
+        {id: 3, x: 16, y: 83, type: 'yellow', branch: 'программист', theory: 'Рекурсия — это когда функция вызывает саму себя. Важно всегда задавать условие выхода, иначе программа упадет с переполнением стека.', question: 'Что произойдёт при вызове функции без условия выхода? (def f(): return f())', answers: ['Ошибка компиляции', 'Бесконечная рекурсия и переполнение стека', 'Программа отработает нормально', 'Рекурсия превратится в цикл'], correct: 1},
+        {id: 2, x: 27, y: 88, type: 'blue', branch: 'программист', question: 'Что означает аббревиатура «ПК»?', answers: ['Программный код', 'Персональный компьютер', 'Процессорный ключ', 'Пакет команд'], correct: 1},
+        {id: 1, x: 37, y: 91, type: 'blue', branch: 'программист', question: 'Что такое алгоритм?', answers: ['Набор случайных команд', 'Последовательность действий для решения задачи', 'Язык программирования', 'Ошибка в коде'], correct: 1},
+
+        // Центральная левая - повар-кондитер
+        {id: 10, x: 27, y: 12, type: 'gold', branch: 'повар-кондитер', question: 'Что такое крем-шарлотт?', answers: ['Масляный крем на основе яично-сахарного сиропа', 'Просто взбитые сливки', 'Смесь творога и йогурта'], correct: 0},
+        {id: 9, x: 31, y: 19, type: 'blue', branch: 'повар-кондитер', question: 'Как называется насадка на миксер для взбивания белков?', answers: ['Крюк', 'Лопатка', 'Венчик'], correct: 2},
+        {id: 8, x: 34, y: 28.6, type: 'yellow', branch: 'повар-кондитер', theory: 'Меренга (безе) бывает трёх видов. Французская — просто взбитые белки с сахаром. Швейцарская — белки нагревают с сахаром на водяной бане. Итальянская — в белки вливают горячий сахарный сироп. Итальянская — самая стабильная.', question: 'Какую меренгу НЕ нужно выпекать в духовке для использования в муссах?', answers: ['Французскую', 'Швейцарскую', 'Итальянскую'], correct: 2},
+        {id: 7, x: 33, y: 40, type: 'blue', branch: 'повар-кондитер', question: 'Как называется пирожное из безе и взбитых сливок?', answers: ['Наполеон', 'Павлова', 'Эклер', 'Тирамису'], correct: 1},
+        {id: 6, x: 37, y: 49.5, type: 'yellow', branch: 'повар-кондитер', theory: 'Темперирование шоколада — это процесс нагрева и охлаждения, чтобы он стал блестящим и хрустел. Если просто растопить шоколад, он будет серым и липким.', question: 'Какой признак у НЕПРАВИЛЬНО темперированного шоколада?', answers: ['Блестящая поверхность', 'Беловатый налёт', 'Твёрдый щелчок при разломе'], correct: 1},
+        {id: 5, x: 43, y: 55, type: 'blue', branch: 'повар-кондитер', question: 'Как называется французское печенье-безе из миндальной муки?', answers: ['Макарон', 'Макароны', 'Профитроли'], correct: 0},
+
+        // Центральная правая - повар
+        {id: 10, x: 73, y: 12, type: 'gold', branch: 'повар', question: 'При какой температуре выпекается хлеб в среднем?', answers: ['100-120°C', '180-220°C', '250-300°C'], correct: 1},
+        {id: 9, x: 69, y: 19, type: 'blue', branch: 'повар', question: 'Как называется нож для тонкой нарезки овощей соломкой?', answers: ['Шеф-нож', 'Слайсер', 'Нож для хлеба'], correct: 1},
+        {id: 8, x: 66, y: 28.6, type: 'yellow', branch: 'повар', theory: 'Степень прожарки стейка варьируется от Rare (с кровью) до Well Done (полная прожарка). Medium — это золотая середина с розовым центром и температурой внутри около 60-65°C.', question: 'Какая температура внутри стейка соответствует прожарке Medium?', answers: ['40°C', '63°C', '80°C'], correct: 1},
+        {id: 7, x: 67, y: 40, type: 'blue', branch: 'повар', question: 'Как называется способ приготовления продуктов в вакууме при низкой температуре?', answers: ['Фритюр', 'Су-вид', 'Гриль'], correct: 1},
+        {id: 6, x: 63, y: 49.5, type: 'yellow', branch: 'повар', theory: 'Аль денте (al dente) — в переводе с итальянского значит «на зубок». Это состояние пасты или овощей, когда они уже готовы, но сохраняют лёгкую упругость при укусе.', question: 'Что означает термин «Аль денте» применительно к пасте?', answers: ['Разварившаяся каша', 'Слегка недоваренная, упругая', 'Сырая'], correct: 1},
+        {id: 5, x: 57, y: 55, type: 'blue', branch: 'повар', question: 'Какая крупа используется для приготовления ризотто?', answers: ['Гречка', 'Рис Арборио', 'Пшено'], correct: 1},
+
+        // Центральная нижняя - общее
+        // Центральная нижняя - только повар
+        {id: 4, x: 50, y: 58, type: 'gold', branch: 'повар-общее', cookOnly: true, question: 'Что такое картошка?', answers: ['А) Корнеплод', 'Б) Пирожное'], isBranching: true},
+        {id: 3, x: 50, y: 68, type: 'yellow', branch: 'повар-общее', cookOnly: true, theory: 'Здоровое питание базируется на балансе белков, жиров и углеводов. Клетчатка, содержащаяся в овощах, необходима для пищеварения, а вода — главный участник всех обменных процессов в теле.', question: 'Что из этого является основным источником быстрой энергии для мозга?', answers: ['Жиры', 'Белки', 'Углеводы (глюкоза)'], correct: 2},
+        {id: 2, x: 50, y: 78, type: 'blue', branch: 'повар-общее', cookOnly: true, question: 'Как называется единица измерения энергии, получаемой из пищи?', answers: ['Ватт', 'Джоуль', 'Калория'], correct: 2},
+        {id: 1, x: 50, y: 89, type: 'blue', branch: 'повар-общее', cookOnly: true, question: 'Сколько литров воды взрослому человеку рекомендуется пить в день?', answers: ['0.5 литра', '1.5 - 2 литра', '5 литров'], correct: 1},
+        // Правая дорожка - химик
+        {id: 11, x: 93, y: 15, type: 'gold', branch: 'химик', question: 'У вас есть 100 мл 9% уксуса. Сколько миллилитров воды нужно добавить, чтобы получить 3% уксус?', answers: ['100 мл', '200 мл', '300 мл', '50 мл'], correct: 1},
+        {id: 10, x: 85, y: 19, type: 'yellow', branch: 'химик', theory: 'Химическое равновесие — это состояние, когда прямая и обратная реакции идут с одинаковой скоростью. Принцип Ле Шателье говорит: если на систему подействовать извне, равновесие сместится так, чтобы ослабить это воздействие.', question: 'Чтобы получить больше аммиака (N₂ + 3H₂ → 2NH₃), какое условие нужно создать?', answers: ['Низкое давление', 'Высокое давление', 'Добавить воду', 'Охладить до 0°C'], correct: 1},
+        {id: 9, x: 88, y: 31, type: 'blue', branch: 'химик', question: 'Какое вещество повара используют для гашения соды?', answers: ['Соль', 'Уксус', 'Сахар', 'Масло'], correct: 1},
+        {id: 8, x: 95, y: 41, type: 'blue', branch: 'химик', question: 'Каким простым веществом можно погасить небольшое возгорание масла на сковороде?', answers: ['Залить водой', 'Накрыть крышкой', 'Посыпать сахаром', 'Добавить уксус'], correct: 1},
+        {id: 7, x: 86, y: 45, type: 'yellow', branch: 'химик', question: 'Какой процесс происходит с яблоком на срезе через несколько минут?', answers: ['Гниение', 'Окисление железа (потемнение)', 'Брожение', 'Испарение'], correct: 1},
+        {id: 6, x: 77, y: 54, type: 'blue', branch: 'химик', theory: 'Правило Вант-Гоффа: при повышении температуры на каждые 10 градусов скорость реакции увеличивается в 2–4 раза. Поэтому продукты портятся быстрее в тепле, а в холодильнике холод замедляет реакции.', question: 'Какой газ используется для надувания воздушных шаров, чтобы они летали?', answers: ['Кислород', 'Гелий', 'Углекислый газ', 'Азот'], correct: 1},
+        {id: 5, x: 85, y: 64, type: 'yellow', branch: 'химик', theory: 'Окислитель — это вещество, которое забирает электроны у другого, при этом само восстанавливается. Восстановитель — отдаёт электроны.', question: 'В реакции ржавления железа (4Fe + 3O₂ → 2Fe₂O₃), кто является окислителем?', answers: ['Железо', 'Кислород', 'Ржавчина', 'Вода'], correct: 1},
+        {id: 4, x: 92, y: 74, type: 'blue', branch: 'химик', question: 'Какая кислота содержится в лимоне?', answers: ['Уксусная', 'Лимонная', 'Серная', 'Соляная'], correct: 1},
+        {id: 3, x: 84, y: 83, type: 'yellow', branch: 'химик', theory: 'Один моль — это число Авогадро (6·10²³ частиц). Молярная масса — это масса одного моля. Например, у воды это 18 г/моль. Значит, 18 граммов воды — это один моль.', question: 'Сколько молей содержится в 36 граммах воды, если один моль воды весит 18 граммов?', answers: ['1 моль', '2 моля', '3 моля', '0,5 моля'], correct: 1},
+        {id: 2, x: 73, y: 88, type: 'blue', branch: 'химик', question: 'Что тяжелее: 1 кг воды или 1 кг железа?', answers: ['Вода', 'Железо', 'Одинаково', 'Зависит от температуры'], correct: 2},
+        {id: 1, x: 63, y: 91, type: 'blue', branch: 'химик', question: 'Какой газ мы выдыхаем?', answers: ['Кислород', 'Углекислый газ', 'Азот', 'Водород'], correct: 1}
+    ];
+
+    // =====================
+    // СОСТОЯНИЕ ИГРЫ
+    // =====================
+    let selectedAnswer = null;
+    let currentCorrectAnswer = null;
+    let currentOpenedNodeId = null;
+    let currentOpenedNodeBranch = null;
+    let currentOpenedNodeEl = null;
+    /** Таймер передачи хода после «Ответить» — не сбрасывать из closeModal (иначе клик по фону отменяет ход). */
+    let postAnswerAdvanceTimer = null;
+
+    // ФИКСы: храним актуальное состояние из Firebase
+    let currentTurnRole = null;   // чья роль сейчас ходит ('programmer', 'cook', 'chemist')
+    let currentPositions = { programmer: 0, cook: 0, chemist: 0 };
+    let turnOrderMap = {};  // { programmer: 1, cook: 2, chemist: 3 } или наоборот
+
+    // ФИКСы: маппинг роль → ветка клеток
+    const roleToBranch = {
+        programmer: 'программист',
+        cook: 'повар',       // будет уточнено после выбора пути
+        chemist: 'химик'
+    };
+    // ФИКСы: после выбора пути повар получает одну из этих веток
+    let myChosenCookBranch = sessionStorage.getItem('cookBranch') || null;
+
+    // =====================
+    // УТИЛИТЫ
+    // =====================
+
+    // ФИКСы: получаем мою текущую ветку по роли
+    function getMyBranch() {
+        if (myRole === 'cook') {
+            return myChosenCookBranch || 'старт'; // до выбора пути — общая
+        }
+        return roleToBranch[myRole] || myRole;
+    }
+
+    // ФИКСы: проверяем, мой ли сейчас ход
+    function isMyTurn() {
+        return currentTurnRole === myRole;
+    }
+
+    // ФИКСы: получаем числовой номер хода для роли
+    function getTurnNumber(role) {
+        return turnOrderMap[role] || null;
+    }
+
+    // Обновление индикатора хода
+    function updateTurnDisplay() {
+        const display = document.getElementById('currentPlayerDisplay');
+        const indicator = document.getElementById('turnIndicator');
+        const myTurnLabel = document.getElementById('myTurnLabel');
+
+        // Находим роль которая сейчас ходит и её номер
+        const roleNames = { programmer: 'Программист', cook: 'Повар', chemist: 'Химик' };
+        const roleName = roleNames[currentTurnRole] || currentTurnRole || '...';
+        display.textContent = roleName;
+
+        if (isMyTurn()) {
+            indicator.classList.add('my-turn');
+            myTurnLabel.style.display = 'block';
+        } else {
+            indicator.classList.remove('my-turn');
+            myTurnLabel.style.display = 'none';
+        }
+
+        // ФИКСы: обновляем доступность клеток при каждой смене хода
+        updateNodeAccessibility();
+    }
+
+    // Возвращает максимальный id клетки для ветки (сколько всего клеток у игрока)
+    function getMaxNodeId(role) {
+        if (role === 'programmer') return 11;
+        if (role === 'chemist') return 11;
+        if (role === 'cook') return 10; // повар: 1-4 общие + 5-10 ветка
+        return 11;
+    }
+
+    // Обновляем прогресс-бар (только свой)
+    function updateProgressBars() {
+        const pos = currentPositions[myRole] || 0;
+        const maxId = getMaxNodeId(myRole);
+        const pct = Math.round((pos / maxId) * 100);
+        const fill = document.getElementById(`progressFill-${myRole}`);
+        if (fill) {
+            fill.style.width = `${pct}%`;
+            fill.textContent = `${pct}%`;
+        }
+    }
+
+    // ФИКСы: обновляем кликабельность клеток — только следующая клетка доступна текущему игроку
+    function updateNodeAccessibility() {
+        const nodes = document.querySelectorAll('.game-node');
+        const myCurrentPos = currentPositions[myRole] || 0;
+        const myNextPos = myCurrentPos + 1; // следующая клетка которую надо нажать
+
+        nodes.forEach(nodeEl => {
+            const nodeData = nodeEl._nodeData;
+            if (!nodeData) return;
+
+            // Сбрасываем все классы
+            nodeEl.classList.remove('blocked', 'other-branch', 'next-locked');
+
+            if (!isMyTurn()) {
+                // Не мой ход — блокируем всё
+                nodeEl.classList.add('blocked');
+                return;
+            }
+
+            // МОЙ ХОД: проверяем что клетка принадлежит моей ветке
+            const myBranch = getMyBranch();
+            const nodeBranch = nodeData.branch;
+
+            // Стартовая клетка своей роли
+            if (nodeData.id === 0) {
+                if (nodeData.role !== myRole) {
+                    nodeEl.classList.add('other-branch');
+                } else {
+                    nodeEl.classList.add('next-locked'); // стартовая — всегда заблокирована (уже позади)
+                }
+                return;
+            }
+
+            // Клетки только для повара
+            if (nodeBranch === 'повар-общее' || nodeData.cookOnly) {
+                if (myRole !== 'cook') {
+                    nodeEl.classList.add('other-branch');
+                    return;
+                }
+            }
+
+            // Ветки повара — только для повара
+            if (nodeBranch === 'повар' || nodeBranch === 'повар-кондитер') {
+                if (myRole !== 'cook') {
+                    nodeEl.classList.add('other-branch');
+                    return;
+                }
+                if (myChosenCookBranch && nodeBranch !== myChosenCookBranch) {
+                    nodeEl.classList.add('other-branch');
+                    return;
+                }
+            }
+
+            // Остальные ветки — только своя ветка
+            if (nodeBranch !== myBranch && nodeBranch !== 'повар-общее') {
+                if (!(myRole === 'cook' && (nodeBranch === 'повар' || nodeBranch === 'повар-кондитер' || nodeBranch === 'повар-общее'))) {
+                    nodeEl.classList.add('other-branch');
+                    return;
+                }
+            }
+
+            // СВОЯ КЛЕТКА: разрешаем только следующую (myNextPos), остальные блокируем
+            if (nodeData.id !== myNextPos) {
+                nodeEl.classList.add('next-locked');
+            }
+            // иначе — клетка доступна (подсвечена)
+        });
+
+        updateProgressBars();
+        updatePassedCellHighlights();
+    }
+
+    /** Клетки строго до фишки (id < позиция на дорожке) — оставляем цвет blue/yellow/gold. */
+    function cellIsPassedForProgrammer(nodeData, pos) {
+        if (pos <= 0) return false;
+        if (nodeData.id === 0 && nodeData.role === 'programmer') return true;
+        if (nodeData.branch !== 'программист') return false;
+        return nodeData.id > 0 && nodeData.id < pos;
+    }
+
+    function cellIsPassedForChemist(nodeData, pos) {
+        if (pos <= 0) return false;
+        if (nodeData.id === 0 && nodeData.role === 'chemist') return true;
+        if (nodeData.branch !== 'химик') return false;
+        return nodeData.id > 0 && nodeData.id < pos;
+    }
+
+    function cellIsPassedForCook(nodeData, pos) {
+        if (pos <= 0) return false;
+        if (nodeData.id === 0 && nodeData.role === 'cook') return true;
+        const cookBranch = sessionStorage.getItem('cookBranch') || myChosenCookBranch;
+        if (nodeData.branch === 'повар-общее' && nodeData.cookOnly && nodeData.id > 0) {
+            return pos > nodeData.id;
+        }
+        if (cookBranch && (nodeData.branch === 'повар' || nodeData.branch === 'повар-кондитер')) {
+            if (nodeData.branch !== cookBranch) return false;
+            return nodeData.id > 0 && nodeData.id < pos;
+        }
+        return false;
+    }
+
+    function updatePassedCellHighlights() {
+        const p = currentPositions;
+        document.querySelectorAll('.game-node').forEach(nodeEl => {
+            const d = nodeEl._nodeData;
+            if (!d) return;
+            const passed =
+                cellIsPassedForProgrammer(d, p.programmer || 0) ||
+                cellIsPassedForChemist(d, p.chemist || 0) ||
+                cellIsPassedForCook(d, p.cook || 0);
+            nodeEl.classList.toggle('passed', passed);
+        });
+    }
+
+    // Перемещение фишки на экране
+    function movePlayerOnScreen(role, nodeId) {
+        let node;
+        if (nodeId === 0) {
+            node = nodesData.find(n => n.id === 0 && n.role === role);
+        } else if (role === 'cook') {
+            // Повар: сначала ищем по выбранной ветке, потом по повар-общее
+            const cookBranch = sessionStorage.getItem('cookBranch');
+            if (cookBranch) {
+                node = nodesData.find(n => n.id === nodeId && n.branch === cookBranch);
+            }
+            if (!node) {
+                node = nodesData.find(n => n.id === nodeId && n.branch === 'повар-общее');
+            }
+            if (!node) {
+                // fallback: ищем по любой ветке повара
+                node = nodesData.find(n => n.id === nodeId && (n.branch === 'повар' || n.branch === 'повар-кондитер' || n.branch === 'повар-общее'));
+            }
+        } else {
+            const branch = roleToBranch[role];
+            node = nodesData.find(n => n.id === nodeId && n.branch === branch);
+        }
+        if (!node) {
+            console.warn(`movePlayerOnScreen: узел не найден для role=${role}, nodeId=${nodeId}`);
+            return;
+        }
+        const pin = document.getElementById(`pin-${role}`);
+        if (pin) {
+            pin.style.left = `${node.x}%`;
+            pin.style.top = `${node.y}%`;
+        }
+    }
+
+    // Создание кнопок на поле
+    function createNodes() {
+        const container = document.getElementById('nodesContainer');
+        nodesData.forEach(node => {
+            const nodeEl = document.createElement('div');
+            nodeEl.className = `game-node ${node.type}`;
+            nodeEl.style.left = `${node.x}%`;
+            nodeEl.style.top = `${node.y}%`;
+            nodeEl.style.transform = 'translate(-50%, -50%)';
+            nodeEl.innerHTML = `<span class="node-number">${node.id}</span>`;
+            nodeEl._nodeData = node; // ФИКСы: сохраняем ссылку на данные
+
+            nodeEl.onclick = () => {
+                // ФИКСы: проверяем заблокирована ли клетка
+                if (nodeEl.classList.contains('blocked')) {
+                    alert('Сейчас не твой ход!');
+                    return;
+                }
+                if (nodeEl.classList.contains('other-branch')) {
+                    alert('Это чужая ветка!');
+                    return;
+                }
+                if (nodeEl.classList.contains('next-locked')) {
+                    alert('Сначала ответь на предыдущую клетку!');
+                    return;
+                }
+                // Дополнительная защита: ветки повара только для повара
+                const nd = nodeEl._nodeData;
+                if ((nd.branch === 'повар' || nd.branch === 'повар-кондитер') && myRole !== 'cook') {
+                    alert('Это чужая ветка!');
+                    return;
+                }
+                openModal(nd, nodeEl);
+            };
+
+            container.appendChild(nodeEl);
+        });
+
+        updateNodeAccessibility();
+    }
+
+    // Открытие модального окна (viewOnly: только UI для других игроков, без записи в Firebase)
+    function openModal(node, element, opts = {}) {
+        const viewOnly = opts.viewOnly === true;
+        if (element && !viewOnly && !isMyTurn()) {
+            alert('Сейчас не твой ход!');
+            return;
+        }
+        if (element && postAnswerAdvanceTimer) {
+            clearTimeout(postAnswerAdvanceTimer);
+            postAnswerAdvanceTimer = null;
+        }
+        currentOpenedNodeId = node.id;
+        currentOpenedNodeBranch = node.branch;
+        currentOpenedNodeEl = element;
+        selectedAnswer = null;
+
+        const theorySection = document.getElementById('theorySection');
+        const questionSection = document.getElementById('questionSection');
+        const resultSection = document.getElementById('resultSection');
+
+        resultSection.style.display = 'none';
+        questionSection.style.display = 'block';
+
+        document.getElementById('modalCellTitle').textContent = `Клетка: №${node.id}`;
+        document.getElementById('modalBranch').textContent = `Ветка: ${node.branch}`;
+
+        if (node.theory) {
+            theorySection.style.display = 'block';
+            questionSection.style.display = 'none';
+            document.getElementById('theoryText').textContent = node.theory;
+        } else {
+            theorySection.style.display = 'none';
+            questionSection.style.display = 'block';
+        }
+
+        if (node.question) {
+            document.getElementById('questionText').textContent = node.question;
+            currentCorrectAnswer = node.correct;
+
+            const optionsContainer = document.getElementById('answerOptions');
+            optionsContainer.innerHTML = '';
+
+            node.answers.forEach((answer, index) => {
+                const option = document.createElement('div');
+                option.className = 'answer-option';
+                option.onclick = () => selectAnswer(index, option);
+                option.innerHTML = `
+                    <div class="radio-circle"></div>
+                    <div class="answer-text">${answer}</div>
+                `;
+                optionsContainer.appendChild(option);
+            });
+        }
+
+        document.getElementById('modalOverlay').classList.add('active');
+
+        if (viewOnly) {
+            document.getElementById('answerBtn').style.display = 'none';
+            document.querySelectorAll('.answer-option').forEach(o => { o.style.pointerEvents = 'none'; });
+            return;
+        }
+
+        document.getElementById('answerBtn').style.display = '';
+
+        // Синхронизируем только когда открыла клетку текущий игрок (не зрительский повтор из onSnapshot)
+        if (element) {
+            updateDoc(roomRef, {
+                activeModal: { nodeId: node.id, nodeBranch: node.branch, openedBy: myRole }
+            }).catch(console.error);
+        }
+    }
+
+    window.showQuestionAfterTheory = function() {
+        document.getElementById('theorySection').style.display = 'none';
+        document.getElementById('questionSection').style.display = 'block';
+    };
+
+    async function selectAnswer(index, element) {
+        const node = nodesData.find(n =>
+            n.id === currentOpenedNodeId &&
+            (n.branch === currentOpenedNodeBranch)
+        );
+
+        // Развилка повара (клетка 4): +1 позиция, ход и activeModal одним запросом
+        if (node && node.isBranching) {
+            const chosenBranch = index === 0 ? 'повар' : 'повар-кондитер';
+            myChosenCookBranch = chosenBranch;
+            sessionStorage.setItem('cookBranch', chosenBranch);
+
+            const branchName = chosenBranch === 'повар' ? 'Повара' : 'Повара-кондитера';
+            alert(`Вы выбрали путь ${branchName}!`);
+
+            const nextRole = computeNextTurnRole(myRole);
+            const newCookPos = (currentPositions.cook || 0) + 1;
+            if (!nextRole) {
+                console.error('Не удалось вычислить следующий ход после выбора ветки повара');
+                return;
+            }
+
+            document.getElementById('modalOverlay').classList.remove('active');
+            try {
+                await updateDoc(roomRef, {
+                    cookChosenBranch: chosenBranch,
+                    [`gameState.positions.cook`]: newCookPos,
+                    activeModal: null,
+                    currentTurn: nextRole
+                });
+                currentPositions.cook = newCookPos;
+                currentTurnRole = nextRole;
+                movePlayerOnScreen('cook', newCookPos);
+                updateTurnDisplay();
+            } catch (e) {
+                console.error('Ошибка сохранения ветки повара / хода:', e);
+            }
+            return;
+        }
+
+        selectedAnswer = index;
+        const options = document.querySelectorAll('.answer-option');
+        options.forEach(opt => opt.classList.remove('selected'));
+        element.classList.add('selected');
+    }
+
+
+
+
+
+
+
+
+    // ФИКСы: checkAnswer двигает фишку при правильном ответе, всегда передаёт ход следующему
+    window.checkAnswer = async function() {
+        if (selectedAnswer === null) {
+            alert('Пожалуйста, выберите вариант ответа!');
+            return;
+        }
+
+        document.getElementById('questionSection').style.display = 'none';
+        document.getElementById('resultSection').style.display = 'flex';
+
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultSubtitle = document.getElementById('resultSubtitle');
+
+        const isCorrect = selectedAnswer === currentCorrectAnswer;
+
+        if (isCorrect) {
+            resultIcon.textContent = '✓';
+            resultIcon.className = 'result-icon correct';
+            resultTitle.textContent = 'Верно!';
+            resultTitle.className = 'result-title correct';
+            resultSubtitle.textContent = 'Фишка движется вперёд!';
+
+            // Двигаем фишку вперёд
+            const currentPos = currentPositions[myRole] || 0;
+            const newPos = currentPos + 1;
+
+            const updateData = {};
+            updateData[`gameState.positions.${myRole}`] = newPos;
+            try {
+                await updateDoc(roomRef, updateData);
+                // === НАЧАЛО ВСТАВКИ ДЛЯ ФИНАЛА ===
+                // Проверяем, дошел ли игрок до конца
+                const finishLines = { 'programmer': 11, 'chemist': 11, 'cook': 10 };
+                if (newPos >= finishLines[myRole]) {
+                    // Останавливаем стандартный таймер закрытия окна, 
+                    // так как мы покажем окно победы вместо обычного игрового поля
+                    if (postAnswerAdvanceTimer) clearTimeout(postAnswerAdvanceTimer);
+                    
+                    setTimeout(() => {
+                        triggerVictory(); // Вызываем функцию победы (создадим её ниже)
+                    }, 1500); 
+                    return; // Выходим из функции, чтобы не срабатывал обычный переход хода ниже
+                }
+                // === КОНЕЦ ВСТАВКИ ===
+            } catch(e) {
+                console.error("Ошибка обновления позиции:", e);
+            }
+        } else {
+            resultIcon.textContent = '✕';
+            resultIcon.className = 'result-icon incorrect';
+            resultTitle.textContent = 'Не верно';
+            resultTitle.className = 'result-title incorrect';
+            resultSubtitle.textContent = 'Фишка остаётся на месте. Ход переходит следующему игроку.';
+        }
+
+        // Автоматическое закрытие через 3 секунды и ВСЕГДА передаём ход следующему
+        if (postAnswerAdvanceTimer) clearTimeout(postAnswerAdvanceTimer);
+        const turnPassingRole = myRole;
+        postAnswerAdvanceTimer = setTimeout(async () => {
+            postAnswerAdvanceTimer = null;
+            document.getElementById('modalOverlay').classList.remove('active');
+            await advanceTurn({
+                afterAnswer: true,
+                answeringRole: turnPassingRole,
+                clearActiveModal: true
+            });
+        }, 3000);
+    };
+
+    /** Следующая роль по кругу 1→2→3→1 (по turnOrderMap). */
+    function computeNextTurnRole(rolePassing) {
+        const map = normalizeTurnOrderMap(turnOrderMap);
+        const myTurnNum = map[rolePassing];
+        const SLOT_COUNT = 3;
+        if (myTurnNum == null || Number.isNaN(myTurnNum) || myTurnNum < 1 || myTurnNum > SLOT_COUNT) {
+            return null;
+        }
+        const nextTurnNum = (myTurnNum % SLOT_COUNT) + 1;
+        for (const [role, num] of Object.entries(map)) {
+            if (Number(num) === nextTurnNum) return role;
+        }
+        return null;
+    }
+
+    /** Нормализует turnOrder из Firestore (числа иногда приходят не как number). */
+    function normalizeTurnOrderMap(raw) {
+        const out = {};
+        for (const [role, v] of Object.entries(raw || {})) {
+            const n = Number(v);
+            if (!Number.isNaN(n) && v !== null && v !== undefined) out[role] = n;
+        }
+        return out;
+    }
+
+    // ФИКСы: передача хода через Firebase — СТРОГАЯ очередность (всегда 1→2→3→1→2→3)
+    // Теперь пропускает финишировавших игроков
+    async function advanceTurn(options = {}) {
+        const { afterAnswer = false, answeringRole = null, clearActiveModal = false } = options;
+        const rolePassing = answeringRole || myRole;
+
+        if (!afterAnswer && !isMyTurn()) return;
+
+        let nextRole = computeNextTurnRole(rolePassing);
+        if (!nextRole) {
+            console.warn('advanceTurn: не удалось вычислить следующего игрока', rolePassing, turnOrderMap);
+            return;
+        }
+
+        // Пропускаем финишировавших игроков (переходим к следующему живому)
+        const finishLines = { 'programmer': 11, 'chemist': 11, 'cook': 10 };
+        let attempts = 0;
+        while (attempts < 3) {
+            const nextPos = currentPositions[nextRole] || 0;
+            const nextFinish = finishLines[nextRole];
+            if (nextPos < nextFinish) {
+                // Этот игрок еще не финишировал — выбираем его
+                break;
+            }
+            // Этот финишировал — ищем следующего
+            nextRole = computeNextTurnRole(nextRole);
+            if (!nextRole) break;
+            attempts++;
+        }
+
+        if (!nextRole) {
+            console.warn('advanceTurn: все игроки финишировали');
+            return;
+        }
+
+        try {
+            const payload = { currentTurn: nextRole };
+            if (clearActiveModal) payload.activeModal = null;
+            await updateDoc(roomRef, payload);
+            currentTurnRole = nextRole;
+            updateTurnDisplay();
+        } catch(e) {
+            console.error("Ошибка передачи хода:", e);
+        }
+    }
+
+    window.closeModal = function() {
+        document.getElementById('modalOverlay').classList.remove('active');
+        updateDoc(roomRef, { activeModal: null }).catch(() => {});
+        if (postAnswerAdvanceTimer) {
+            clearTimeout(postAnswerAdvanceTimer);
+            postAnswerAdvanceTimer = null;
+            advanceTurn({ afterAnswer: true, answeringRole: myRole, clearActiveModal: true }).catch(console.error);
+        }
+    };
+
+    window.closeModalOnOverlay = function(event) {
+        if (event.target === event.currentTarget) {
+            window.closeModal();
+        }
+    };
+
+    // =====================
+    // ВЫБОР ОЧЕРЕДНОСТИ
+    // =====================
+    window.setPlayerOrder = async function(playerNum) {
+        if (!myRole || myRole === 'spectator') {
+            alert("Ошибка: роль не определена!");
+            return;
+        }
+        try {
+            const updateData = {};
+            updateData[`turnOrder.${myRole}`] = playerNum;
+            await updateDoc(roomRef, updateData);
+
+            document.querySelectorAll('#turnOrderModal button').forEach(btn => {
+                btn.disabled = true;
+                btn.style.backgroundColor = "#ccc";
+            });
+            document.getElementById('orderStatus').textContent = `Вы выбрали ходить ${playerNum}-м. Ожидайте остальных.`;
+        } catch(e) {
+            console.error("Ошибка сохранения выбора:", e);
+        }
+    };
+
+    /** Все фишки на старте (0) — чтобы не сбросить currentTurn в середине партии. */
+    function positionsAllAtStart(d) {
+        const p = d.gameState && d.gameState.positions;
+        if (!p) return true;
+        const z = (v) => v == null || Number(v) === 0;
+        return z(p.programmer) && z(p.cook) && z(p.chemist);
+    }
+
+    // =====================
+    // ИНИЦИАЛИЗАЦИЯ
+    // =====================
+    window.onload = () => {
+        createNodes();
+        // Показываем только свой прогресс-бар
+        if (myRole && myRole !== 'spectator') {
+            const myRow = document.getElementById(`progressRow-${myRole}`);
+            if (myRow) myRow.style.display = 'flex';
+        }
+    };
+
+    // =====================
+    // СЛУШАТЕЛЬ FIREBASE
+    // =====================
+    onSnapshot(roomRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.data();
+
+        // --- Синхронизация фишек ---
+        if (data.gameState && data.gameState.positions) {
+            const positions = data.gameState.positions;
+            currentPositions = { ...positions };
+            movePlayerOnScreen('programmer', positions.programmer || 0);
+            movePlayerOnScreen('cook', positions.cook || 0);
+            movePlayerOnScreen('chemist', positions.chemist || 0);
+            updateProgressBars();
+        }
+
+        // --- Синхронизация очередности ---
+        const turns = data.turnOrder || {};
+        turnOrderMap = normalizeTurnOrderMap(turns);
+
+        // Обновляем кнопки модалки очередности
+        const modal = document.getElementById('turnOrderModal');
+        const myTurnChosen = turns[myRole];
+
+        if (myTurnChosen !== null && myTurnChosen !== undefined) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
+
+        const buttons = modal.querySelectorAll('button');
+        buttons.forEach(btn => {
+            const attr = btn.getAttribute('onclick');
+            if (!attr) return;
+            const match = attr.match(/\d+/);
+            if (!match) return;
+            const turnNum = parseInt(match[0]);
+            const isTaken = Object.values(turns).some(v => Number(v) === turnNum);
+            if (isTaken) {
+                btn.disabled = true;
+                btn.style.backgroundColor = "#ccc";
+                btn.innerText = "Занято";
+            }
+        });
+
+        const selectedCount = Object.values(turns).filter(v => v !== null && v !== undefined).length;
+
+        // Только в самом начале партии: иначе при кратковременном отсутствии currentTurn в снимке
+        // все клиенты снова пишут «первый ход» и залипают на игроке 1.
+        if (selectedCount === 3 && !data.currentTurn && positionsAllAtStart(data)) {
+            modal.classList.remove('active');
+            // Хост устанавливает первого ходящего (у кого turnOrder = 1)
+            let firstRole = null;
+            for (const [role, num] of Object.entries(turns)) {
+                if (Number(num) === 1) { firstRole = role; break; }
+            }
+            if (firstRole && myRole === firstRole) {
+                // Только первый игрок записывает currentTurn чтобы не было дублей
+                updateDoc(roomRef, { currentTurn: firstRole }).catch(console.error);
+            }
+        }
+
+        // --- Синхронизация выбора ветки повара ---
+        if (data.cookChosenBranch) {
+            sessionStorage.setItem('cookBranch', data.cookChosenBranch);
+            if (myRole === 'cook') {
+                myChosenCookBranch = data.cookChosenBranch;
+            }
+        }
+
+        // --- Синхронизация текущего хода: всегда из снимка (иначе локально залипает старый currentTurnRole
+        // между await updateDoc и приходом onSnapshot — игрок успевает открыть несколько клеток подряд)
+        currentTurnRole = (data.currentTurn != null && data.currentTurn !== '') ? data.currentTurn : null;
+        updateTurnDisplay();
+        // Показываем модалку другим игрокам (только просмотр; не пишем в Firebase из openModal)
+        const modalHost = data.activeModal && data.activeModal.openedBy;
+        if (data.activeModal && modalHost && modalHost !== myRole) {
+            const { nodeId, nodeBranch } = data.activeModal;
+            const node = nodesData.find(n => n.id === nodeId && n.branch === nodeBranch);
+            if (node) {
+                openModal(node, null, { viewOnly: true });
+            }
+        } else if (!data.activeModal && currentTurnRole !== myRole) {
+            // Модалка закрылась у активного игрока — закрываем у зрителей
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+    });
+
+    // Функция показа окна поздравления
+    function triggerVictory() {
+        // Скрываем игровое окно и показываем окно победы
+        document.getElementById('modalOverlay').classList.remove('active');
+        document.getElementById('victoryModal').classList.add('active');
+        
+        // Передаем ход следующему игроку (пропускаем финишировавших)
+        setTimeout(async () => {
+            await advanceTurn({
+                afterAnswer: true,
+                answeringRole: myRole,
+                clearActiveModal: true
+            });
+        }, 500);
+    }
+
+    // Переход к окну с дипломом (вызывается из HTML кнопкой)
+    window.showDiploma = function() {
+        document.getElementById('victoryModal').classList.remove('active');
+        document.getElementById('diplomaModal').classList.add('active');
+    };
+
+    // Возврат на главную (вызывается из HTML кнопкой)
+    window.goToMainMenu = function() {
+        window.location.href = 'lobby.html';
+    };
+    </script>
+</body>
+</html>

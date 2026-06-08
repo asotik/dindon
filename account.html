@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный кабинет | Карьера: путь к диплому</title>
+  <link rel="stylesheet" href="/style/account.css">
+</head>
+<body>
+  <!-- Хедер -->
+  <header class="header">
+    <div class="header-container">
+      <div class="logo-section">
+        <img src="/img/npk_logo.png" alt="logo" class="header-logo" />
+        <span class="header-title">Карьера: путь к диплому</span>
+      </div>
+
+      <nav class="header-nav">
+        <a href="main.html" class="nav-link">Главная</a>
+        <a href="lobby.html" class="nav-link">Игра</a>
+        <a href="achievements.html" class="nav-link">Достижения</a>
+      </nav>
+
+      <div class="header-right">
+        <a href="account.html" class="cabinet-btn">Личный кабинет</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="cabinet-wrapper">
+
+    <!-- ОДИН БОЛЬШОЙ БЛОК: верхняя строка + личные данные + учеба и интересы -->
+    <div class="unified-card">
+      <!-- Верхняя часть с аватаркой, ником, уровнем и кнопками -->
+      <div class="profile-header-section">
+        <div class="avatar">К</div>
+        <div class="profile-info-header">
+          <div class="profile-nick">Куепикми</div>
+          <div class="profile-level">Уровень: Исследователь</div>
+          <div class="progress-container">
+            <div class="progress-bar-bg"><div class="progress-fill" style="width:42%"></div></div>
+            <span class="progress-text">42%</span>
+          </div>
+        </div>
+        <div class="header-buttons">
+          <button class="btn-primary" id="saveProfileBtn">Сохранить профиль</button>
+        </div>
+      </div>
+
+      <!-- Два блока внутри большого блока -->
+      <div class="main-content-grid">
+        <!-- Блок 1: Личные данные + Цель + Выход -->
+        <div class="left-block">
+          <div class="info-card">
+            <div class="info-title">Личные данные</div>
+            <div class="detail-line">
+              <span class="detail-label">Имя</span>
+              <span class="detail-value">Карина</span>
+            </div>
+            <div class="detail-line">
+              <span class="detail-label">Фамилия</span>
+              <span class="detail-value">Меншус</span>
+            </div>
+            <div class="detail-line">
+              <span class="detail-label">Номер телефона</span>
+              <span class="detail-value">+7 (999) 123-45-67</span>
+            </div>
+          </div>
+
+          <!-- Блок ЦЕЛЬ с кнопкой "Изменить" -->
+          <div class="goal-section" id="goalBlock">
+            <div class="goal-title">🎯 Цель</div>
+            <div id="goalDisplay" class="goal-display">Моя цель: Поступить на программу...</div>
+            <button class="goal-edit-btn" id="editGoalBtn">Изменить</button>
+            <div id="goalEditArea" class="goal-edit-area" style="display: none;">
+              <input type="text" id="goalInput" class="goal-input" placeholder="Введите свою цель" value="Поступить на программу...">
+              <div>
+                <button class="goal-save-btn" id="saveGoalBtn">Сохранить</button>
+                <button class="goal-cancel-btn" id="cancelGoalBtn">Отмена</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- КНОПКА ВЫХОДА ИЗ АККАУНТА (под целью) -->
+          <div class="logout-section">
+            <button class="logout-btn" id="logoutAccountBtn">
+              🚪 Выйти из аккаунта
+            </button>
+          </div>
+        </div>
+
+        <!-- Блок 2: Учеба и интересы + сегодня -->
+        <div class="right-block">
+          <div class="study-title">Учеба и интересы</div>
+          
+          <div class="combined-block">
+            <!-- Класс -->
+            <div class="class-row">
+              <span class="class-label">Класс</span>
+              <select id="classSelect" class="class-select">
+                <option value="5">5 класс</option>
+                <option value="6">6 класс</option>
+                <option value="7">7 класс</option>
+                <option value="8">8 класс</option>
+                <option value="9">9 класс</option>
+                <option value="10">10 класс</option>
+                <option value="11" selected>11 класс</option>
+              </select>
+            </div>
+
+            <div class="interests-title">Интересы</div>
+            <div class="interests-tags" id="tagsContainer"></div>
+
+            <div class="interest-selector">
+              <select id="interestSelect" class="interest-select">
+                <option value="">Выберите интерес</option>
+                <option value="IT">💻 IT</option>
+                <option value="Дизайн">🎨 Дизайн</option>
+                <option value="Медицина">🏥 Медицина</option>
+                <option value="Гуманитарные">📚 Гуманитарные</option>
+                <option value="Спорт">⚽ Спорт</option>
+                <option value="Музыка">🎵 Музыка</option>
+                <option value="Искусство">🎭 Искусство</option>
+                <option value="Наука">🔬 Наука</option>
+                <option value="Бизнес">💼 Бизнес</option>
+                <option value="Путешествия">✈️ Путешествия</option>
+              </select>
+              <button class="add-interest-btn" id="addFromSelectBtn">+ Добавить</button>
+            </div>
+
+            <!-- Блок Сегодня -->
+            <div class="today-block" id="todayBlock">
+              <div class="today-header"><span>📅</span> Сегодня</div>
+              <div class="today-date" id="currentDate"></div>
+              <div id="taskDisplay" class="task-display">✨ получить диплом программиста</div>
+              <div class="small-edit" id="editTaskBtn">✎ изменить задачу</div>
+              <div id="taskEditArea" class="task-edit-area" style="display:none;">
+                <input type="text" id="taskInput" class="task-input" placeholder="Что нужно сделать сегодня?" value="получить диплом программиста">
+                <div>
+                  <button class="confirm-add" id="saveTaskBtn">Сохранить</button>
+                  <button class="cancel-add" id="cancelTaskBtn">Отмена</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-section">
+        <h3 class="footer-title">Карьера: путь к диплому</h3>
+        <p class="footer-description">
+          Образовательная платформа для студентов и выпускников.
+          Помогаем построить успешную карьеру с самого начала.
+        </p>
+      </div>
+
+      <div class="footer-section">
+        <h4 class="footer-subtitle">Контакты</h4>
+        <div class="contact-info">
+          <div class="contact-item">
+            <span class="contact-icon">📧</span>
+            <span>iatsan006@gmail.com</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon">📞</span>
+            <span>+7 (908) 895-44-97</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-bottom-container">
+        <p class="copyright">&copy; 2026 Карьера: путь к диплому. Все права защищены.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/account.js"></script>
+</body>
+</html>
